@@ -10,10 +10,13 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.ApplicationModel.Store;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
+using Windows.UI.Core;
 using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -29,6 +32,8 @@ public sealed partial class MainWindow : Window
     private string ImagePath = "";
     private Size? SourceImageSize;
     private readonly AppWindow? m_AppWindow;
+    public LicenseInformation LicenseInformation { get; private set; }
+    private readonly string proIAPName = "pro-features";
 
     public MainWindow()
     {
@@ -37,7 +42,28 @@ public sealed partial class MainWindow : Window
         m_AppWindow = GetAppWindowForCurrentWindow();
         m_AppWindow.SetIcon("SimpleIconMaker.ico");
         m_AppWindow.Title = "Simple Icon File Maker";
+
+#if DEBUG
+        LicenseInformation = CurrentAppSimulator.LicenseInformation;
+#else
+        LicenseInformation = CurrentApp.LicenseInformation;
+#endif
+
+        CheckPurchases();
     }
+
+    private void CheckPurchases()
+    {
+        if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
+        {
+            // the customer can access this feature
+        }
+        else
+        {
+            // the customer can' t access this feature
+        }
+    }
+
     private AppWindow GetAppWindowForCurrentWindow()
     {
         IntPtr hWnd = WindowNative.GetWindowHandle(this);
@@ -381,5 +407,44 @@ public sealed partial class MainWindow : Window
         MainImage.Source = null;
         ImagePath = "-";
         await SourceImageUpdated("");
+    }
+
+    private async void UpgradeAppBarButton_Click(object sender, RoutedEventArgs e)
+    {
+        await BuyPro();
+    }
+
+    private async Task BuyPro()
+    {
+        if (LicenseInformation.ProductLicenses[proIAPName].IsActive == false)
+        {
+            try
+            {
+                // The customer doesn't own this feature, so
+                // show the purchase dialog.
+#if DEBUG
+                await CurrentAppSimulator.RequestProductPurchaseAsync(proIAPName, true);
+#else
+                await CurrentApp.RequestProductPurchaseAsync(proIAPName, true);
+#endif
+
+                //Check the license state to determine if the in-app purchase was successful.
+                if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
+                    SuccessProPurchase.IsOpen = true;
+                else
+                    FailedProPurchase.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                // The in-app purchase was not completed because
+                // an error occurred.
+                FailedProPurchase.IsOpen = true;
+                Debug.WriteLine(ex.Message);
+            }
+        }
+        else
+        {
+            // The customer already owns this feature.
+        }
     }
 }

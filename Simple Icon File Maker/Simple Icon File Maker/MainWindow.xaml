@@ -148,6 +148,11 @@
         <CommandBar Grid.Row="1" VerticalAlignment="Bottom">
             <CommandBar.PrimaryCommands>
                 <AppBarButton
+                    x:Name="UpgradeAppBarButton"
+                    Click="UpgradeAppBarButton_Click"
+                    Icon="Up"
+                    Label="Upgrade" />
+                <AppBarButton
                     x:Name="InfoAppBarButton"
                     Click="InfoAppBarButton_Click"
                     Icon="Help"
@@ -159,5 +164,32 @@
                     Label="Clear" />
             </CommandBar.PrimaryCommands>
         </CommandBar>
+
+        <InfoBar
+            x:Name="SuccessProPurchase"
+            Title="Purchase Successful"
+            Grid.RowSpan="2"
+            Grid.ColumnSpan="2"
+            Margin="20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Severity="Success">
+            <TextBlock Margin="0,0,0,20">
+                You have upgraded to Simple Icon File Maker Pro!
+            </TextBlock>
+        </InfoBar>
+        <InfoBar
+            x:Name="FailedProPurchase"
+            Title="Purchase Failed"
+            Grid.RowSpan="2"
+            Grid.ColumnSpan="2"
+            Margin="20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Severity="Error">
+            <TextBlock Margin="0,0,0,20">
+                Something went wrong with the Pro purchase, please email support
+            </TextBlock>
+        </InfoBar>
     </Grid>
 </Window>
