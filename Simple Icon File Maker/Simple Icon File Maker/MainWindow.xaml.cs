@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.ApplicationModel.Store;
+using Windows.Services.Store;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
@@ -422,11 +423,27 @@ public sealed partial class MainWindow : Window
             {
                 // The customer doesn't own this feature, so
                 // show the purchase dialog.
-#if DEBUG
-                await CurrentAppSimulator.RequestProductPurchaseAsync(proIAPName, true);
-#else
-                await CurrentApp.RequestProductPurchaseAsync(proIAPName, true);
-#endif
+                StorePurchaseProperties proProps = new(proIAPName);
+                StoreContext store = StoreContext.GetDefault();
+                var result = await store.GetAssociatedStoreProductsAsync(new string[] { "Durable", "Consumable" });
+                if (result.ExtendedError is not null)
+                {
+                    throw new Exception("Failed to get items from store");
+                }
+
+                foreach (var item in result.Products)
+                {
+                    StoreProduct product = item.Value;
+
+                    if (product.InAppOfferToken == proIAPName)
+                    {
+                        // gets add-on
+                        Window window = new();
+                        IntPtr hwnd = WindowNative.GetWindowHandle(window);
+                        InitializeWithWindow.Initialize(product, hwnd);
+                        await product.RequestPurchaseAsync();
+                    }
+                }
 
                 //Check the license state to determine if the in-app purchase was successful.
                 if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
