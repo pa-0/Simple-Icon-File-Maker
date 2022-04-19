@@ -58,10 +58,12 @@ public sealed partial class MainWindow : Window
         if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
         {
             // the customer can access this feature
+            SuccessProPurchase.IsOpen = true;
         }
         else
         {
             // the customer can' t access this feature
+            FailedProPurchase.IsOpen = true;
         }
     }
 
@@ -440,7 +442,7 @@ public sealed partial class MainWindow : Window
                         // gets add-on
                         Window window = new();
                         IntPtr hwnd = WindowNative.GetWindowHandle(window);
-                        InitializeWithWindow.Initialize(product, hwnd);
+                        InitializeWithWindow.Initialize(store, hwnd);
                         await product.RequestPurchaseAsync();
                     }
                 }
