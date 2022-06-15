@@ -19,6 +19,7 @@ using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
 using WinRT.Interop;
+using AmbientSounds.Services.Uwp;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -33,6 +34,7 @@ public sealed partial class MainWindow : Window
     private string ImagePath = "";
     private Size? SourceImageSize;
     private readonly AppWindow? m_AppWindow;
+    private readonly StoreService storeService = new();
     public LicenseInformation LicenseInformation { get; private set; }
     private readonly string proIAPName = "pro-features";
 
@@ -53,17 +55,19 @@ public sealed partial class MainWindow : Window
         CheckPurchases();
     }
 
-    private void CheckPurchases()
+    private async void CheckPurchases()
     {
-        if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
+        if (await storeService.IsOwnedAsync(proIAPName))
         {
             // the customer can access this feature
             SuccessProPurchase.IsOpen = true;
+            UpgradeAppBarButton.Visibility = Visibility.Collapsed;
         }
         else
         {
             // the customer can' t access this feature
             FailedProPurchase.IsOpen = true;
+            UpgradeAppBarButton.Visibility = Visibility.Visible;
         }
     }
 
@@ -419,7 +423,7 @@ public sealed partial class MainWindow : Window
 
     private async Task BuyPro()
     {
-        if (LicenseInformation.ProductLicenses[proIAPName].IsActive == false)
+        if (await storeService.IsOwnedAsync(proIAPName) == false)
         {
             try
             {
