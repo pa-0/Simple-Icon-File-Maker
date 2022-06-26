@@ -50,12 +50,10 @@
                     <TextBlock Text="Drag and Drop image here" />
                 </StackPanel>
             </Canvas>
-            <Viewbox>
-                <Image
-                    x:Name="MainImage"
-                    Margin="36"
-                    Stretch="Uniform" />
-            </Viewbox>
+            <Image
+                x:Name="MainImage"
+                Margin="36"
+                Stretch="Uniform" />
 
             <CommandBar VerticalAlignment="Bottom">
                 <CommandBar.PrimaryCommands>

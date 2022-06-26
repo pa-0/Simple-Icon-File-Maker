@@ -1,4 +1,5 @@
-﻿using ImageMagick;
+﻿using AmbientSounds.Services.Uwp;
+using ImageMagick;
 using ImageMagick.ImageOptimizers;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -10,16 +11,13 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.ApplicationModel.Store;
 using Windows.Services.Store;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
-using Windows.UI.Core;
 using WinRT.Interop;
-using AmbientSounds.Services.Uwp;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -59,14 +57,14 @@ public sealed partial class MainWindow : Window
     {
         if (await storeService.IsOwnedAsync(proIAPName))
         {
-            // the customer can access this feature
-            SuccessProPurchase.IsOpen = true;
+            // the customer can access pro features
+            // and upgrade button should be not visible
             UpgradeAppBarButton.Visibility = Visibility.Collapsed;
         }
         else
         {
-            // the customer can' t access this feature
-            FailedProPurchase.IsOpen = true;
+            // the customer can' t access pro features
+            // and upgrade button should be visible
             UpgradeAppBarButton.Visibility = Visibility.Visible;
         }
     }
@@ -131,7 +129,7 @@ public sealed partial class MainWindow : Window
     {
         ImagesProcessingProgressRing.Visibility = Visibility.Visible;
         ImagesProcessingProgressRing.IsActive = true;
-        
+
         string? openedPath = Path.GetDirectoryName(path);
         string? name = Path.GetFileNameWithoutExtension(path);
 
@@ -173,7 +171,7 @@ public sealed partial class MainWindow : Window
         size.IgnoreAspectRatio = false;
         size.FillArea = true;
 
-        firstPassimage.Extent(size, Gravity.Center, MagickColor.FromRgba(0,0,0,0));
+        firstPassimage.Extent(size, Gravity.Center, MagickColor.FromRgba(0, 0, 0, 0));
 
         await firstPassimage.WriteAsync(croppedImagePath);
 
@@ -235,7 +233,7 @@ public sealed partial class MainWindow : Window
 
     private async Task UpdatePreviewsAsync(Dictionary<int, string> imagePaths)
     {
-        foreach (var pair in imagePaths)
+        foreach (KeyValuePair<int, string> pair in imagePaths)
         {
             if (pair.Value is not string imagePath)
                 return;
@@ -442,13 +440,13 @@ public sealed partial class MainWindow : Window
                 // show the purchase dialog.
                 StorePurchaseProperties proProps = new(proIAPName);
                 StoreContext store = StoreContext.GetDefault();
-                var result = await store.GetAssociatedStoreProductsAsync(new string[] { "Durable", "Consumable" });
+                StoreProductQueryResult? result = await store.GetAssociatedStoreProductsAsync(new string[] { "Durable", "Consumable" });
                 if (result.ExtendedError is not null)
                 {
                     throw new Exception("Failed to get items from store");
                 }
 
-                foreach (var item in result.Products)
+                foreach (KeyValuePair<string, StoreProduct> item in result.Products)
                 {
                     StoreProduct product = item.Value;
 
