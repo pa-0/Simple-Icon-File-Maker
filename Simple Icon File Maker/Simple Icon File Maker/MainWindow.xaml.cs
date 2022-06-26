@@ -129,6 +129,9 @@ public sealed partial class MainWindow : Window
 
     private async Task<bool> GenerateIcons(string path, bool updatePreviews = false, bool saveAllFiles = false)
     {
+        ImagesProcessingProgressRing.Visibility = Visibility.Visible;
+        ImagesProcessingProgressRing.IsActive = true;
+        
         string? openedPath = Path.GetDirectoryName(path);
         string? name = Path.GetFileNameWithoutExtension(path);
 
@@ -166,10 +169,12 @@ public sealed partial class MainWindow : Window
 
         using IMagickImage<ushort> firstPassimage = await imgFactory.CreateAsync(ImagePath);
         IMagickGeometry size = geoFactory.Create(
-            Math.Min(SourceImageSize.Value.Width, SourceImageSize.Value.Height));
+            Math.Max(SourceImageSize.Value.Width, SourceImageSize.Value.Height));
         size.IgnoreAspectRatio = false;
+        size.FillArea = true;
 
-        firstPassimage.Crop(size);
+        firstPassimage.Extent(size, Gravity.Center, MagickColor.FromRgba(0,0,0,0));
+
         await firstPassimage.WriteAsync(croppedImagePath);
 
         List<int> intList = new() { 256, 128, 64, 32, 16 };
@@ -186,7 +191,8 @@ public sealed partial class MainWindow : Window
             IMagickGeometry iconSize = geoFactory.Create(sideLength, sideLength);
             iconSize.IgnoreAspectRatio = false;
 
-            image.Resize(iconSize);
+            image.Scale(iconSize);
+            image.Sharpen();
 
             string iconPath = $"{iconRootString}\\Image{sideLength}.png";
             string outputImagePath = $"{openedPath}\\{name}{sideLength}.png";
@@ -210,6 +216,8 @@ public sealed partial class MainWindow : Window
         };
         icoOpti.Compress(iconOutputString);
 
+        ImagesProcessingProgressRing.IsActive = false;
+        ImagesProcessingProgressRing.Visibility = Visibility.Collapsed;
         return true;
     }
 
@@ -220,6 +228,9 @@ public sealed partial class MainWindow : Window
         OutputImage64.Source = null;
         OutputImage32.Source = null;
         OutputImage16.Source = null;
+
+        ImagesProcessingProgressRing.IsActive = false;
+        ImagesProcessingProgressRing.Visibility = Visibility.Collapsed;
     }
 
     private async Task UpdatePreviewsAsync(Dictionary<int, string> imagePaths)
