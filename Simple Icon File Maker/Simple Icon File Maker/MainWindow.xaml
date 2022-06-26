@@ -56,6 +56,26 @@
                     Margin="36"
                     Stretch="Uniform" />
             </Viewbox>
+
+            <CommandBar VerticalAlignment="Bottom">
+                <CommandBar.PrimaryCommands>
+                    <AppBarButton
+                        x:Name="UpgradeAppBarButton"
+                        Click="UpgradeAppBarButton_Click"
+                        Icon="Up"
+                        Label="Upgrade" />
+                    <AppBarButton
+                        x:Name="InfoAppBarButton"
+                        Click="InfoAppBarButton_Click"
+                        Icon="Help"
+                        Label="About" />
+                    <AppBarButton
+                        x:Name="ClearAppBarButton"
+                        Click="ClearAppBarButton_Click"
+                        Icon="Clear"
+                        Label="Clear" />
+                </CommandBar.PrimaryCommands>
+            </CommandBar>
         </Grid>
 
         <!--  Left side:  -->
@@ -144,26 +164,6 @@
                     ToolTipService.ToolTip="16x16 Pixels" />
             </StackPanel>
         </ScrollViewer>
-
-        <CommandBar Grid.Row="1" VerticalAlignment="Bottom">
-            <CommandBar.PrimaryCommands>
-                <AppBarButton
-                    x:Name="UpgradeAppBarButton"
-                    Click="UpgradeAppBarButton_Click"
-                    Icon="Up"
-                    Label="Upgrade" />
-                <AppBarButton
-                    x:Name="InfoAppBarButton"
-                    Click="InfoAppBarButton_Click"
-                    Icon="Help"
-                    Label="About" />
-                <AppBarButton
-                    x:Name="ClearAppBarButton"
-                    Click="ClearAppBarButton_Click"
-                    Icon="Clear"
-                    Label="Clear" />
-            </CommandBar.PrimaryCommands>
-        </CommandBar>
 
         <InfoBar
             x:Name="SuccessProPurchase"
