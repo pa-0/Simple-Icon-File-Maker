@@ -41,8 +41,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         m_AppWindow = GetAppWindowForCurrentWindow();
-        m_AppWindow.SetIcon("SimpleIconMaker.ico");
-        m_AppWindow.Title = "Simple Icon File Maker";
+        CheckPurchases();
 
 #if DEBUG
         LicenseInformation = CurrentAppSimulator.LicenseInformation;
@@ -50,7 +49,23 @@ public sealed partial class MainWindow : Window
         LicenseInformation = CurrentApp.LicenseInformation;
 #endif
 
-        CheckPurchases();
+    }
+
+    private void SetWindowTitleAndIcon(bool isPro = false)
+    {
+        if (m_AppWindow is null)
+            return;
+
+        if (isPro == true)
+        {
+            m_AppWindow.SetIcon("ProIcon.ico");
+            m_AppWindow.Title = "Simple Icon File Maker Pro";
+        }
+        else
+        {
+            m_AppWindow.SetIcon("SimpleIconMaker.ico");
+            m_AppWindow.Title = "Simple Icon File Maker";
+        }
     }
 
     private async void CheckPurchases()
@@ -60,12 +75,16 @@ public sealed partial class MainWindow : Window
             // the customer can access pro features
             // and upgrade button should be not visible
             UpgradeAppBarButton.Visibility = Visibility.Collapsed;
+
+            SetWindowTitleAndIcon(true);
         }
         else
         {
             // the customer can' t access pro features
             // and upgrade button should be visible
             UpgradeAppBarButton.Visibility = Visibility.Visible;
+            
+            SetWindowTitleAndIcon();
         }
     }
 
@@ -462,21 +481,29 @@ public sealed partial class MainWindow : Window
 
                 //Check the license state to determine if the in-app purchase was successful.
                 if (LicenseInformation.ProductLicenses[proIAPName].IsActive)
+                {
                     SuccessProPurchase.IsOpen = true;
+                    SetWindowTitleAndIcon(true);
+                }
                 else
+                {
                     FailedProPurchase.IsOpen = true;
+                    SetWindowTitleAndIcon();
+                }
             }
             catch (Exception ex)
             {
                 // The in-app purchase was not completed because
                 // an error occurred.
                 FailedProPurchase.IsOpen = true;
+                SetWindowTitleAndIcon();
                 Debug.WriteLine(ex.Message);
             }
         }
         else
         {
             // The customer already owns this feature.
+            SetWindowTitleAndIcon(true);
         }
     }
 }

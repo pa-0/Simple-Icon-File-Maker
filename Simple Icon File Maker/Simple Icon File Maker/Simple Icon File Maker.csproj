@@ -21,9 +21,17 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="AboutWindow.xaml" />
+    <None Remove="ProIcon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="SimpleIconMaker.ico" />
+    <Content Include="SimpleIconMaker.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ProIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
