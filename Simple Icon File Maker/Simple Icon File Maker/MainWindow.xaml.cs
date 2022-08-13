@@ -2,8 +2,10 @@
 using ImageMagick;
 using ImageMagick.ImageOptimizers;
 using Microsoft.UI;
+using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
@@ -35,6 +37,9 @@ public sealed partial class MainWindow : Window
     private readonly StoreService storeService = new();
     public LicenseInformation LicenseInformation { get; private set; }
     private readonly string proIAPName = "pro-features";
+    private bool isDrawingCrop = false;
+    // private System.Windows.Point GetMousePos() => this.PointToScreen(Mouse.GetPosition(this));
+
 
     public MainWindow()
     {
@@ -191,10 +196,14 @@ public sealed partial class MainWindow : Window
         size.FillArea = true;
 
         firstPassimage.Extent(size, Gravity.Center, MagickColor.FromRgba(0, 0, 0, 0));
+        // firstPassimage.Grayscale();
+        // firstPassimage.Deskew(new Percentage(40));
+        // firstPassimage.Enhance();
+        // firstPassimage.Sharpen();
 
         await firstPassimage.WriteAsync(croppedImagePath);
 
-        List<int> intList = new() { 256, 128, 64, 32, 16 };
+        List<int> intList = new() { 256, 128, 64, 48, 40, 32, 16, 12, 8 };
 
         MagickImageCollection collection = new();
         Dictionary<int, string> imagePaths = new();
@@ -273,8 +282,12 @@ public sealed partial class MainWindow : Window
                 256 => OutputImage256.Source = bitmapImage,
                 128 => OutputImage128.Source = bitmapImage,
                 64 => OutputImage64.Source = bitmapImage,
+                48 => OutputImage48.Source = bitmapImage,
+                40 => OutputImage40.Source = bitmapImage,
                 32 => OutputImage32.Source = bitmapImage,
                 16 => OutputImage16.Source = bitmapImage,
+                12 => OutputImage12.Source = bitmapImage,
+                8 => OutputImage8.Source = bitmapImage,
                 _ => throw new Exception("Icon side length did not match output image size")
             };
         }
