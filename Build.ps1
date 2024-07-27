@@ -11,15 +11,15 @@ Else
 
 foreach ($csproj in $(Get-ChildItem -Recurse $PSScriptRoot -Filter *.csproj))
 {
-    dotnet add "Simple Icon File Maker" package CommunityToolkit.Mvvm --version 8.2.2    
-    dotnet add "Simple Icon File Maker" package CommunityToolkit.WinUI.Helpers --version 8.0.240109
-    dotnet add "Simple Icon File Maker" package CommunityToolkit.WinUI.UI.Animations --version 7.1.2 
-    dotnet add "Simple Icon File Maker" package Magick.NET-Q16-AnyCPU --version 13.10.0 
-    dotnet add "Simple Icon File Maker" package Microsoft.Extensions.Hosting --version 8.0.0 
-    dotnet add "Simple Icon File Maker" package Microsoft.WindowsAppSDK --version 1.5.240627000 
-    dotnet add "Simple Icon File Maker" package Microsoft.Windows.SDK.BuildTools --version 10.0.26100.1 
-    dotnet add "Simple Icon File Maker" package PropertyChanged.Fody --version 4.1.0 
-    dotnet add "Simple Icon File Maker" package WinUIEx --version 2.3.4 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package CommunityToolkit.Mvvm --version 8.2.2    
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package CommunityToolkit.WinUI.Helpers --version 8.0.240109
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package CommunityToolkit.WinUI.UI.Animations --version 7.1.2 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package Magick.NET-Q16-AnyCPU --version 13.10.0 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package Microsoft.Extensions.Hosting --version 8.0.0 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package Microsoft.WindowsAppSDK --version 1.5.240627000 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package Microsoft.Windows.SDK.BuildTools --version 10.0.26100.1 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package PropertyChanged.Fody --version 4.1.0 
+    dotnet add "Simple Icon File Maker\Simple Icon File Maker.csproj" package WinUIEx --version 2.3.4 
     dotnet publish $csproj.FullName -c Release -r win-x64 --artifacts-path $OutputDirectory -p:PublishTrimmed=true -p:PublishReadyToRun=false
 }
 
