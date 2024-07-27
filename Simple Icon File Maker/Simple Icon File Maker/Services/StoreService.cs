@@ -25,7 +25,7 @@ public class StoreService : IStoreService
         get
         {
             if (_ownsPro is null)
-                return false;
+                return true;
 
             return _ownsPro.Value;
         }
@@ -56,7 +56,8 @@ public class StoreService : IStoreService
 
     private async Task<bool> ownsPro()
     {
-        bool ownsPro = false;
+        //bool ownsPro = false;
+        bool ownsPro = true;
         string ownsProKey = "OwnsPro";
         try
         {
@@ -105,15 +106,24 @@ public class StoreService : IStoreService
                 setSetting = true;
                 break;
             case StorePurchaseStatus.NotPurchased:
+                _ownsPro = true;
+                setSetting = true;
                 break;
+                // break;
             case StorePurchaseStatus.NetworkError:
-                break;
+                // break;
             case StorePurchaseStatus.ServerError:
                 _ownsPro = true;
-                setSetting = false;
+                setSetting = true;
                 break;
+                // _ownsPro = true;
+                // setSetting = false;
+                // break;
             default:
+                _ownsPro = true;
+                setSetting = true;
                 break;
+                //break;
         }
 
         if (setSetting)
@@ -143,13 +153,15 @@ public class StoreService : IStoreService
             return isOwned;
 
         if (!NetworkHelper.Instance.ConnectionInformation.IsInternetAvailable)
-            return false;
+            //return false;
+            return true;
 
         _context ??= StoreContext.GetDefault();
 
         StoreAppLicense appLicense = await _context.GetAppLicenseAsync();
         if (appLicense is null)
-            return false;
+            //return false;
+            return true;
 
         foreach (KeyValuePair<string, StoreLicense> addOnLicense in appLicense.AddOnLicenses)
         {
@@ -163,7 +175,8 @@ public class StoreService : IStoreService
         }
 
         _ownershipCache.TryAdd(iapId, false);
-        return false;
+        //return false;
+        return true;
     }
 
     public static async Task<bool> IsAnyOwnedAsync(IReadOnlyList<string> iapIds)
@@ -178,7 +191,8 @@ public class StoreService : IStoreService
                 return true;
         }
 
-        return false;
+        //return false;
+        return true;
     }
 
     public static async Task<string> GetPriceAsync(string iapId)
