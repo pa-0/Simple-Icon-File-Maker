@@ -15,5 +15,5 @@ foreach ($csproj in $(Get-ChildItem -Recurse $PSScriptRoot -Filter *.csproj))
     dotnet publish $csproj.FullName -c Release -f net8.0 -r win-x64 --artifacts-path $OutputDirectory -p:PublishSingleFile=true -p:PublishTrimmed=true -p:PublishReadyToRun=false
 }
 
-Get-ChildItem -Recurse -Path $OutputDirectory | Compress-Archive -Recurse $OutputDirectory\client-win-x64.zip
+Get-ChildItem -Recurse -Path $OutputDirectory | Compress-Archive $OutputDirectory\client-win-x64.zip
 & gh release create v1.0 $OutputDirectory\client-win-x64.zip
