@@ -20,7 +20,7 @@ foreach ($csproj in $(Get-ChildItem -Recurse $PSScriptRoot -Filter *.csproj))
     dotnet add "Simple Icon File Maker" package Microsoft.Windows.SDK.BuildTools --version 10.0.26100.1 
     dotnet add "Simple Icon File Maker" package PropertyChanged.Fody --version 4.1.0 
     dotnet add "Simple Icon File Maker" package WinUIEx --version 2.3.4 
-    dotnet publish $csproj.FullName -c Release -f net8.0 -r win-x64 --artifacts-path $OutputDirectory -p:PublishTrimmed=true -p:PublishReadyToRun=false
+    dotnet publish $csproj.FullName -c Release -r win-x64 --artifacts-path $OutputDirectory -p:PublishTrimmed=true -p:PublishReadyToRun=false
 }
 
 Compress-Archive -Path $OutputDirectory -DestinationPath $OutputDirectory\client-win-x64.zip
