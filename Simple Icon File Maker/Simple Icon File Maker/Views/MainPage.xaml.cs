@@ -2,8 +2,10 @@ using ImageMagick;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Simple_Icon_File_Maker.Constants;
 using Simple_Icon_File_Maker.Contracts.Services;
 using Simple_Icon_File_Maker.Controls;
+using Simple_Icon_File_Maker.Helpers;
 using Simple_Icon_File_Maker.Models;
 using Simple_Icon_File_Maker.ViewModels;
 using System.Collections.ObjectModel;
@@ -18,15 +20,14 @@ namespace Simple_Icon_File_Maker;
 
 public sealed partial class MainPage : Page
 {
-    ObservableCollection<IconSize> IconSizes { get; set; } = new();
-
-    readonly HashSet<string> SupportedImageFormats = new() { ".png", ".bmp", ".jpeg", ".jpg", ".ico" };
+    ObservableCollection<IconSize> IconSizes { get; set; } = [];
 
     private readonly DispatcherTimer dispatcherTimer = new();
     private string ImagePath = "";
     private string OutPutPath = "";
+    private readonly UndoRedo undoRedo = new();
 
-    MainViewModel ViewModel { get; } = new();
+    public MainViewModel ViewModel { get; }
 
     public MainPage()
     {
@@ -35,6 +36,10 @@ public sealed partial class MainPage : Page
         DataContext = ViewModel;
         dispatcherTimer.Interval = TimeSpan.FromMilliseconds(200);
         dispatcherTimer.Tick += DispatcherTimer_Tick;
+        ViewModel = App.GetService<MainViewModel>();
+
+        undoRedo.UndoButton = UndoButton;
+        undoRedo.RedoButton = RedoButton;
     }
 
     private async void DispatcherTimer_Tick(object? sender, object e)
@@ -46,7 +51,7 @@ public sealed partial class MainPage : Page
 
     private void Page_Loaded(object sender, RoutedEventArgs e)
     {
-        SupportedFilesTextBlock.Text = $"({string.Join(", ", SupportedImageFormats)})";
+        SupportedFilesTextBlock.Text = $"({string.Join(", ", FileTypes.SupportedImageFormats)})";
 
         if (App.cliArgs?.Length > 1)
             ImagePath = App.cliArgs[1];
@@ -125,12 +130,14 @@ public sealed partial class MainPage : Page
             }
         }
 
+        // TODO order the icon frames by size and choose the largest size to compare
         MagickImage image = new(ImagePath);
-        int smallerSide = Math.Min(image.Width, image.Height);
+        int smallerSide = (int)Math.Min(image.Width, image.Height);
 
         foreach (IconSize size in IconSizes)
-            if (size.SideLength > smallerSide)
-                size.IsEnabled = false;
+            size.IsEnabled = size.SideLength <= smallerSide;
+
+        SizeDisabledWarning.IsOpen = IconSizes.Any(x => !x.IsEnabled);
 
         if (anyRefreshAvailable)
             RefreshButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
@@ -166,7 +173,7 @@ public sealed partial class MainPage : Page
         CheckIfRefreshIsNeeded();
     }
 
-    private void ConfigBlankState() => 
+    private void ConfigBlankState() =>
         VisualStateManager.GoToState(this, UiStates.BlankState.ToString(), true);
 
     private void ConfigUiThinking() =>
@@ -193,7 +200,7 @@ public sealed partial class MainPage : Page
 
             ImagePath = await e.DataView.GetTextAsync();
 
-            if (!SupportedImageFormats.Contains(Path.GetExtension(ImagePath)))
+            if (!ImagePath.IsSupportedImageFormat())
             {
                 Debug.WriteLine("bitmap, update not success");
                 ConfigUiWelcome();
@@ -207,9 +214,7 @@ public sealed partial class MainPage : Page
             Debug.WriteLine("dropped URI");
             Uri s = await e.DataView.GetUriAsync();
 
-            string extension = Path.GetExtension(s.AbsolutePath) ?? string.Empty;
-
-            if (!SupportedImageFormats.Contains(extension))
+            if (!ImagePath.IsSupportedImageFormat())
             {
                 Debug.WriteLine("dropped URI, not supported");
                 ConfigUiWelcome();
@@ -231,12 +236,11 @@ public sealed partial class MainPage : Page
 
     private async Task TryToOpenStorageItems(IReadOnlyList<IStorageItem> storageItems)
     {
-        List<string> failedItemNames = new();
+        List<string> failedItemNames = [];
         // Iterate through all the items to find an image, stop at first success
         foreach (IStorageItem item in storageItems)
         {
-            if (item is StorageFile file &&
-                SupportedImageFormats.Contains(file.FileType.ToLowerInvariant()))
+            if (item is StorageFile file && file.IsSupportedImageFormat())
             {
                 ImagePath = file.Path;
                 await LoadFromImagePath();
@@ -310,16 +314,6 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async void InfoAppBarButton_Click(object sender, RoutedEventArgs e)
-    {
-        AboutDialog aboutWindow = new()
-        {
-            XamlRoot = Content.XamlRoot
-        };
-
-        _ = await aboutWindow.ShowAsync();
-    }
-
     private async void OpenBTN_Click(object sender, RoutedEventArgs e)
     {
         Button? openButton = sender as Button;
@@ -332,12 +326,10 @@ public sealed partial class MainPage : Page
             SuggestedStartLocation = PickerLocationId.PicturesLibrary
         };
 
-        foreach (string extension in SupportedImageFormats)
+        foreach (string extension in FileTypes.SupportedImageFormats)
             picker.FileTypeFilter.Add(extension);
 
-        Window window = new();
-        IntPtr windowHandle = WindowNative.GetWindowHandle(window);
-        InitializeWithWindow.Initialize(picker, windowHandle);
+        InitializeWithWindow.Initialize(picker, App.MainWindow.WindowHandle);
 
         StorageFile file = await picker.PickSingleFileAsync();
 
@@ -355,8 +347,8 @@ public sealed partial class MainPage : Page
 
     private void SelectIconSizes()
     {
-        List<IconSize> chosenSizes = new();
-        SelectTheseIcons(Array.Empty<IconSize>());
+        List<IconSize> chosenSizes = [];
+        SelectTheseIcons([]);
 
         UIElementCollection uIElements = PreviewsGrid.Children;
 
@@ -383,11 +375,21 @@ public sealed partial class MainPage : Page
                 IconSizes.Add(size);
         }
 
-        List<IconSize> orderedIcons = IconSizes.OrderByDescending(size => size.SideLength).ToList();
+        List<IconSize> orderedIcons = [.. IconSizes.OrderByDescending(size => size.SideLength)];
         IconSizes.Clear();
 
         foreach (IconSize size in orderedIcons)
             IconSizes.Add(size);
+
+        int smallerSide = 0;
+
+        if (Path.GetExtension(ImagePath).Equals(".ico", StringComparison.InvariantCultureIgnoreCase))
+            smallerSide = IconSizes.First(x => x.IsSelected).SideLength;
+
+        foreach (IconSize size in IconSizes)
+            size.IsEnabled = size.SideLength <= smallerSide;
+
+        SizeDisabledWarning.IsOpen = IconSizes.Any(x => !x.IsEnabled);
     }
 
     private async void OpenFolderBTN_Click(object sender, RoutedEventArgs e)
@@ -410,6 +412,11 @@ public sealed partial class MainPage : Page
     {
         RefreshButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
 
+        await RefreshPreviews();
+    }
+
+    private async Task RefreshPreviews()
+    {
         UIElementCollection uIElements = PreviewsGrid.Children;
 
         Progress<int> progress = new(percent =>
@@ -420,7 +427,7 @@ public sealed partial class MainPage : Page
         foreach (UIElement element in uIElements)
         {
             if (element is PreviewStack stack)
-                await stack.GeneratePreviewImagesAsync(progress);
+                await stack.GeneratePreviewImagesAsync(progress, ImagePath);
         }
 
         bool isAnySizeSelected = IconSizes.Any(x => x.IsSelected);
@@ -437,13 +444,11 @@ public sealed partial class MainPage : Page
         {
             SuggestedStartLocation = PickerLocationId.PicturesLibrary,
         };
-        savePicker.FileTypeChoices.Add("ICO File", new List<string>() { ".ico" });
+        savePicker.FileTypeChoices.Add("ICO File", [".ico"]);
         savePicker.DefaultFileExtension = ".ico";
         savePicker.SuggestedFileName = Path.GetFileNameWithoutExtension(ImagePath);
 
-        Window saveWindow = new();
-        IntPtr windowHandleSave = WindowNative.GetWindowHandle(saveWindow);
-        InitializeWithWindow.Initialize(savePicker, windowHandleSave);
+        InitializeWithWindow.Initialize(savePicker, App.MainWindow.WindowHandle);
 
         StorageFile file = await savePicker.PickSaveFileAsync();
 
@@ -481,13 +486,11 @@ public sealed partial class MainPage : Page
         {
             SuggestedStartLocation = PickerLocationId.PicturesLibrary,
         };
-        savePicker.FileTypeChoices.Add("ICO File", new List<string>() { ".ico" });
+        savePicker.FileTypeChoices.Add("ICO File", [".ico"]);
         savePicker.DefaultFileExtension = ".ico";
         savePicker.SuggestedFileName = Path.GetFileNameWithoutExtension(ImagePath);
 
-        Window saveWindow = new();
-        IntPtr windowHandleSave = WindowNative.GetWindowHandle(saveWindow);
-        InitializeWithWindow.Initialize(savePicker, windowHandleSave);
+        InitializeWithWindow.Initialize(savePicker, App.MainWindow.WindowHandle);
 
         StorageFile file = await savePicker.PickSaveFileAsync();
 
@@ -585,12 +588,149 @@ public sealed partial class MainPage : Page
             BuyProDialog buyProDialog = new() { XamlRoot = Content.XamlRoot };
             _ = await buyProDialog.ShowAsync();
         }
-
     }
 
     private async void UpgradeToProHyperlinkButton_Click(object sender, RoutedEventArgs e)
     {
         BuyProDialog buyProDialog = new() { XamlRoot = Content.XamlRoot };
         _ = await buyProDialog.ShowAsync();
+    }
+
+    private async void BlackWhiteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ImagePath))
+            return;
+
+        StorageFolder sf = ApplicationData.Current.LocalCacheFolder;
+        string fileName = Path.GetFileNameWithoutExtension(ImagePath);
+        string extension = Path.GetExtension(ImagePath);
+        string bwFilePath = Path.Combine(sf.Path, $"{fileName}_bw{extension}");
+        MagickImage image = new(ImagePath);
+
+        image.Grayscale();
+        image.AutoThreshold(AutoThresholdMethod.OTSU);
+        await image.WriteAsync(bwFilePath);
+
+        MagickImageUndoRedoItem undoRedoItem = new(MainImage, ImagePath, bwFilePath);
+        undoRedo.AddUndo(undoRedoItem);
+
+        ImagePath = bwFilePath;
+
+        MainImage.Source = image.ToImageSource();
+
+        await RefreshPreviews();
+    }
+
+    private async void BlackWhiteButton_Click2(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ImagePath))
+            return;
+
+        StorageFolder sf = ApplicationData.Current.LocalCacheFolder;
+        string fileName = Path.GetFileNameWithoutExtension(ImagePath);
+        string extension = Path.GetExtension(ImagePath);
+        string bwkFilePath = Path.Combine(sf.Path, $"{fileName}_bwk{extension}");
+        MagickImage image = new(ImagePath);
+
+        image.Grayscale();
+        image.AutoThreshold(AutoThresholdMethod.Kapur);
+        await image.WriteAsync(bwkFilePath);
+
+        MagickImageUndoRedoItem undoRedoItem = new(MainImage, ImagePath, bwkFilePath);
+        undoRedo.AddUndo(undoRedoItem);
+
+        ImagePath = bwkFilePath;
+
+        MainImage.Source = image.ToImageSource();
+
+        await RefreshPreviews();
+    }
+
+    private async void InvertButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ImagePath))
+            return;
+
+        StorageFolder sf = ApplicationData.Current.LocalCacheFolder;
+        string fileName = Path.GetFileNameWithoutExtension(ImagePath);
+        string extension = Path.GetExtension(ImagePath);
+        string invFilePath = Path.Combine(sf.Path, $"{fileName}_inv{extension}");
+        MagickImage image = new(ImagePath);
+
+        image.Negate(Channels.RGB);
+        await image.WriteAsync(invFilePath);
+
+        MagickImageUndoRedoItem undoRedoItem = new(MainImage, ImagePath, invFilePath);
+        undoRedo.AddUndo(undoRedoItem);
+
+        ImagePath = invFilePath;
+
+        MainImage.Source = image.ToImageSource();
+
+        await RefreshPreviews();
+    }
+
+    private async void GrayScaleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ImagePath))
+            return;
+
+        StorageFolder sf = ApplicationData.Current.LocalCacheFolder;
+        string fileName = Path.GetFileNameWithoutExtension(ImagePath);
+        string extension = Path.GetExtension(ImagePath);
+        string grayFilePath = Path.Combine(sf.Path, $"{fileName}_gray{extension}");
+        MagickImage image = new(ImagePath);
+
+        image.Grayscale();
+        await image.WriteAsync(grayFilePath);
+
+        MagickImageUndoRedoItem undoRedoItem = new(MainImage, ImagePath, grayFilePath);
+        undoRedo.AddUndo(undoRedoItem);
+
+        ImagePath = grayFilePath;
+
+        MainImage.Source = image.ToImageSource();
+
+        await RefreshPreviews();
+    }
+
+    private async void EditImageColorDropDownButton_Click(object sender, RoutedEventArgs e)
+    {
+        bool ownsPro = App.GetService<IStoreService>().OwnsPro;
+
+        if (ownsPro)
+            return;
+
+        BuyProDialog buyProDialog = new() { XamlRoot = Content.XamlRoot };
+        _ = await buyProDialog.ShowAsync();
+    }
+
+    private void MenuFlyout_Opening(object sender, object e)
+    {
+        bool ownsPro = App.GetService<IStoreService>().OwnsPro;
+
+        if (ownsPro)
+            return;
+
+        if (sender is MenuFlyout flyout)
+            flyout.Hide();
+    }
+
+    private async void UndoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!undoRedo.CanUndo)
+            return;
+
+        ImagePath = undoRedo.Undo();
+        await RefreshPreviews();
+    }
+
+    private async void RedoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!undoRedo.CanRedo)
+            return;
+
+        ImagePath = undoRedo.Redo();
+        await RefreshPreviews();
     }
 }
