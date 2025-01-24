@@ -6,6 +6,8 @@ using Simple_Icon_File_Maker.Contracts.Services;
 using Simple_Icon_File_Maker.Services;
 using Simple_Icon_File_Maker.Activation;
 using Simple_Icon_File_Maker.Models;
+using Simple_Icon_File_Maker.Views;
+using Simple_Icon_File_Maker.ViewModels;
 
 namespace Simple_Icon_File_Maker;
 
@@ -31,6 +33,10 @@ public partial class App : Application
 
         return service;
     }
+
+    public static MainWindow MainWindow { get; } = new MainWindow();
+
+    public static UIElement? AppTitlebar { get; set; }
 
     public App()
     {
@@ -59,7 +65,14 @@ public partial class App : Application
             services.AddSingleton<IFileService, FileService>();
 
             // Views and ViewModels
+            services.AddTransient<ShellPage>();
+            services.AddTransient<ShellViewModel>();
             services.AddTransient<MainPage>();
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<AboutPage>();
+            services.AddTransient<AboutViewModel>();
+            services.AddTransient<MultiPage>();
+            services.AddTransient<MultiViewModel>();
 
             // Configuration
             services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
@@ -83,6 +96,5 @@ public partial class App : Application
         await App.GetService<IActivationService>().ActivateAsync(args);
     }
 
-    public static Window? m_window { get; } = new MainWindow();
     public static string[]? cliArgs { get; } = Environment.GetCommandLineArgs();
 }
